@@ -10,7 +10,8 @@ import sys, os, collections, itertools
 from utils import align_size
 from utils import RingLooper
 from utils import transposelist
-from colored import AnsiColored
+from colored import colorize
+from colored import ColoredSetting
 
 _default_field_paint = {'set' : ( 'bold', )}
 
@@ -62,11 +63,11 @@ class PrettyTable():
         aligned_width_of_columns = map(lambda x: align_size(x, self.__align_boundary), self.__max_size_of_columns)
         aligned_width_of_columns = [ i if j == None else j for i, j in zip(aligned_width_of_columns, self.__fixed_width_of_fields) ]
         fmtstr = self.__padding_characters.join(['{:%s%d}' % (_, __) for _, __ in zip(self.__field_alignments, aligned_width_of_columns)])
-        string = str(AnsiColored(fmtstr.format(*self.__fields), enabling = self.__enable_painting, **self.__field_paint))
+        string = colorize(fmtstr.format(*self.__fields), enabling = self.__enable_painting, **self.__field_paint)
         string += os.linesep
         paletteiter = iter(RingLooper(*self.__palette_paints))
         for r in self.__records:
-            string += str(AnsiColored(fmtstr.format(*r), enabling = self.__enable_painting, **next(paletteiter)))
+            string += colorize(fmtstr.format(*r), enabling = self.__enable_painting, **next(paletteiter))
             string += os.linesep
         return string
 
@@ -135,7 +136,7 @@ class PrettyVTable():
             group = transposelist(group)
             paint = next(paletteiter)
             for row in group:
-                string += str(AnsiColored(fmtstr.format(*row), enabling = self.__enable_painting, **paint))
+                string += colorize(fmtstr.format(*row), enabling = self.__enable_painting, **paint)
                 string += os.linesep
         return string
 
@@ -195,10 +196,10 @@ def main(argv = None):
     pt.add_column('<')
     pt.add_column('<')
     pt.add_column('<')
-    pt.add_field('Name')
-    pt.add_field('Age')
-    pt.add_field('Birth')
-    pt.add_field('City')
+    pt.add_field('Name:')
+    pt.add_field('Age:')
+    pt.add_field('Birth:')
+    pt.add_field('City:')
     pt.add_record('Zhang', '30', '1900', 'Shanghai')
     pt.add_record('Wang', '31', '1901', 'Beijing')
     pt.add_record('Li', '32', '1902', 'Shanghai')

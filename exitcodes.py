@@ -10,7 +10,7 @@ __all__ = [
 
 import sys, signal, enum
 from colored import colorize
-from utils import streamistty
+from colored import ColoredSetting
 
 class exitcode(enum.IntEnum):
     EC_OK = 0                   # Successful termination
@@ -32,7 +32,7 @@ def signo_to_signame(sno):
     return _siglist.get(sno)
 
 def _on_trapped(signo, frame):
-    print(str(colorize('Interrupted by %s' % (signo_to_signame(signo)), enabling = streamistty(sys.stderr), fgcolor = 'green', set = ( 'bold', ))), file = sys.stderr)
+    print(str(colorize('Interrupted by %s' % (signo_to_signame(signo)), enabling = ColoredSetting().is_colorize(sys.stderr), fgcolor = 'green', set = ( 'bold', ))), file = sys.stderr)
     sys.exit(exitcode.EC_FATAL_SIGNAL_BASE + signo)
 
 def set_trap_handler(sigs, handler = None):

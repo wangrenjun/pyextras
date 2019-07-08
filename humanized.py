@@ -8,6 +8,9 @@ __all__ = [
     'humanizedhex',
     'humanizeddec',
     'humanizedbinip',
+    'humanizedbytes',
+    'humanizedpercentage',
+    'humanizedpercentage2',
 ]
 
 import textwrap, ipaddress
@@ -63,3 +66,58 @@ def humanizedbinip(ipaddr):
         fillwidth = 128
         wrapwidth = 16
     return '.'.join(textwrap.wrap('{:b}'.format(int(ipaddr)).zfill(fillwidth), wrapwidth))
+
+__capacity_symbols = {
+    'traditionalbytes' : (
+    ('YB',  'yottabyte',    10 ** 24    ),
+    ('ZB',  'zetabyte',     10 ** 21    ),
+    ('EB',  'exabyte',      10 ** 18    ),
+    ('PB',  'petabyte',     10 ** 15    ),
+    ('TB',  'terabyte',     10 ** 12    ),
+    ('GB',  'gigabyte',     10 ** 9     ),
+    ('MB',  'megabyte',     10 ** 6     ),
+    ('kB',  'kilobyte',     10 ** 3     ),),
+    'iecbytes' : (
+    ('YiB', 'yobibyte',     1 << 80     ),
+    ('ZiB', 'zebibyte',     1 << 70     ),
+    ('EiB', 'exbibyte',     1 << 60     ),
+    ('PiB', 'pebibyte',     1 << 50     ),
+    ('TiB', 'tebibyte',     1 << 40     ),
+    ('GiB', 'gibibyte',     1 << 30     ),
+    ('MiB', 'mebibyte',     1 << 20     ),
+    ('KiB', 'kibibyte',     1 << 10     ),),
+}
+
+def humanizedbytes(size, to = 'traditionalbytes', precision = 1):
+    if isinstance(size, (int, float)):
+        if size < 0:
+            raise ValueError('size < 0')
+        bytes = size
+    elif isinstance(size, str):
+        for name, symbols in __capacity_symbols.items():
+            for item in symbols:
+                for i in item[:2]:
+                    if size.lower().endswith(i.lower()):
+                        bytes = float(size[:-len(i)]) * item[2]
+                        break
+                else:
+                    continue
+                break
+            else:
+                continue
+            break
+        else:
+            raise ValueError("can't parse " + size)
+    else:
+        TypeError('must be int, float or str' + ', not ' + type(size).__name__)
+    num = bytes
+    symbol = 'B'
+    for item in __capacity_symbols[to]:
+        if bytes >= item[2]:
+            num = float(bytes) / item[2]
+            symbol = item[0]
+            break
+    return '{:.{precision}f} {}'.format(num, symbol, precision = precision)
+
+humanizedpercentage = lambda n: '{:.{precision}f}%'.format(n, precision = 1)
+humanizedpercentage2 = lambda n: '{:.{precision}%}'.format(n, precision = 1)

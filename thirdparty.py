@@ -30,14 +30,12 @@ def trydecodingbytes(bs):
         encoding = chardet(bs)['encoding']
     except ImportError:
         encoding = None
-    if not encoding:
-        if tried_encodings and tried_encodings[0] and tried_encodings[0][0]:
-            encoding = tried_encodings[0][0]
-        else:
-            encoding = 'utf-8'  # Guess
-    try:
-        s = bs.decode(encoding = encoding)
-    except UnicodeDecodeError:
-        s = str(bs)
-        encoding = None
+    if not encoding and tried_encodings and tried_encodings[0] and tried_encodings[0][0]:
+        encoding = tried_encodings[0][0]
+    if encoding:
+        try:
+            s = bs.decode(encoding = encoding)
+        except Exception:
+            s = str(bs)
+            encoding = None
     return s, encoding

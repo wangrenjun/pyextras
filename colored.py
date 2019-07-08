@@ -2,30 +2,24 @@
 # -*- coding: utf-8 -*-
 
 __all__ = [
-    'init_colored',
-    'Colored',
-    'AnsiColored',
+    'colorizeansi',
+    'ttyautocolorizeansi',
+    'combineansi',
     'colorize',
     'ttyautocolorize',
     'combine',
-    'EscapeSet',
-    'EscapeReset',
-    'EscapeFgColor',
-    'EscapeBgColor',
+    'escapeset',
+    'escapereset',
+    'escapefgcolor',
+    'escapebgcolor',
+    'ColoredSetting',
 ]
 
 import sys, enum, abc, collections
 from utils import joiniterable
 from utils import streamistty
-
-_has_enabled_coloring = True
-
-def init_colored(on = True):
-    global _has_enabled_coloring
-    if not isinstance(on, bool):
-        raise TypeError('must be bool' + ', not ' + type(on).__name__)
-    on, _has_enabled_coloring = _has_enabled_coloring, on
-    return on
+from utils import joiniterable
+from utils import Singleton
 
 _sets = dict(zip(
         ( 'bold', 'dim', 'italic', 'underlined', 'blink', 'rapid blink', 'reverse', 'hidden', 'crossed out', ),
@@ -55,56 +49,18 @@ def _esc(codes):
     else:
         raise TypeError('must be one of int, str, iterable' + ', not ' + type(codes).__name__)
 
-class Colored(metaclass = abc.ABCMeta):
-    @abc.abstractmethod
-    def __add__(self, other):
-        pass
-    @abc.abstractmethod
-    def __radd__(self, other):
-        pass
-    @abc.abstractmethod
-    def __str__(self):
-        pass
-    @abc.abstractmethod
-    def __repr__(self):
-        pass
+def colorizeansi(*args, enabling = True, **style):
+    argstring = joiniterable(' ', args)
+    if enabling:
+        paint = combineansi(**style)
+        if paint:
+            argstring = paint + argstring + escapereset.NORMAL.value
+    return argstring
 
-class AnsiColored(Colored):
-    def __init__(self, *args, enabling = True, **style):
-        string = ' '.join(args)
-        if _has_enabled_coloring is True and enabling is True:
-            paint = combine(**style)
-            if paint:
-                string = paint + string + EscapeReset.NORMAL.value
-        self.__string = string
+def ttyautocolorizeansi(stream, *args, **style):
+    return colorizeansi(*args, enabling = streamistty(stream), **style)
 
-    def __add__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return self.__class__(self.__string + str(other))
-        else:
-            return NotImplemented
-
-    def __radd__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return self.__class__(str(other) + self.__string)
-        else:
-            return NotImplemented
-
-    def __str__(self):
-        return self.__string
-
-    def __repr__(self):
-        return "%s.%s(%r)" % (self.__class__.__module__,
-                              self.__class__.__qualname__,
-                              self.__dict__)
-
-def colorize(*args, enabling = None, **style):
-    return AnsiColored(*args, enabling = enabling, **style)
-
-def ttyautocolorize(stream, *args, **style):
-    return AnsiColored(*args, enabling = streamistty(stream), **style)
-
-def combine(**style):
+def combineansi(**style):
     fields = {
         'set' :     lambda x: [ _sets[_] for _ in x ],
         'reset' :   lambda x: [ _resets[_] for _ in x ],
@@ -118,28 +74,44 @@ def combine(**style):
             l.extend(f(v))
     return _esc(l) if l else ''
 
-EscapeSet = enum.Enum('EscapeSet', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _sets.items() })
-EscapeReset = enum.Enum('EscapeReset', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _resets.items() })
-EscapeFgColor = enum.Enum('EscapeFgColor', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _fgcolors.items() })
-EscapeBgColor = enum.Enum('EscapeBgColor', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _bgcolors.items() })
+def colorize(*args, enabling = True, **style):
+    return colorizeansi(*args, enabling = enabling, **style)
+
+def ttyautocolorize(stream, *args, **style):
+    return ttyautocolorizeansi(stream, *args, **style)
+
+def combine(**style):
+    return combineansi(**style)
+
+escapeset = enum.Enum('escapeset', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _sets.items() })
+escapereset = enum.Enum('escapereset', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _resets.items() })
+escapefgcolor = enum.Enum('escapefgcolor', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _fgcolors.items() })
+escapebgcolor = enum.Enum('escapebgcolor', { '_'.join(k.upper().split(' ')): _esc(v) for k, v in _bgcolors.items() })
+
+class ColoredSetting(metaclass = Singleton):
+    def __init__(self, when = 'auto', autocb = streamistty):
+        if when == 'always':
+            self.__has_enabled_colorize = True
+        elif when == 'never':
+            self.__has_enabled_colorize = False
+        else:
+            self.__has_enabled_colorize = autocb
+    def is_colorize(self, stream):
+        return self.__has_enabled_colorize if isinstance(self.__has_enabled_colorize, bool) else self.__has_enabled_colorize(stream)
 
 def main(argv = None):
     if argv is None:
         argv = sys.argv
 
-    assert init_colored(False) == True
-    assert init_colored(True) == False
-    assert _has_enabled_coloring == True
-
-    c1 = AnsiColored('1.', 'hello', 'world', '你好', fgcolor = 'red', bgcolor = 'grey')
+    c1 = colorize('1.', 'hello', 'world', '你好', fgcolor = 'red', bgcolor = 'grey')
     print(c1)
 
-    c2 = AnsiColored('2.', 'hello', 'world', '你好', fgcolor = 'black', bgcolor = 'cyan', set = [ 'bold', 'crossed out' ])
+    c2 = colorize('2.', 'hello', 'world', '你好', fgcolor = 'black', bgcolor = 'cyan', set = [ 'bold', 'crossed out' ])
     print(c2)
     print(c1 + c2)
     print(c2 + '世界')
     print('世界' + c2)
-    assert str(c2) == _esc([30, 46, 1, 9]) + '2. hello world 你好' + _esc(0)
+    assert c2 == _esc([30, 46, 1, 9]) + '2. hello world 你好' + _esc(0)
 
     escseq = combine(fgcolor = 'green', bgcolor = 'silver', set = [ 'bold', 'underlined', 'blink' ])
     print(repr(escseq))
@@ -165,7 +137,7 @@ def main(argv = None):
         for i in range(26):
             d[chr(i+c)] = chr((i+13) % 26 + c)
     for l in "".join([d.get(c, c) for c in s]).splitlines():
-        print(AnsiColored(l, **next(paletteiter)))
+        print(colorize(l, **next(paletteiter)))
 
 if __name__ == "__main__":
     sys.exit(main())

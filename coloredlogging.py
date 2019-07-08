@@ -9,7 +9,7 @@ __all__ = [
 
 import sys, logging
 from colored import colorize
-from utils import streamistty
+from colored import ColoredSetting
 
 _levelstyles = { 'INFO' :     { 'fgcolor' : 'green', 'set' : ( 'bold', ) },
                  'WARNING':   { 'fgcolor' : 'yellow', 'set' : ( 'bold', ) },
@@ -30,7 +30,7 @@ class ColoredFormatter(logging.Formatter):
 
     def format(self, record):
         msg = super().format(record)
-        return str(colorize(msg, enabling = streamistty(self.__stream), **_levelstyles.get(record.levelname, {})))
+        return str(colorize(msg, enabling = ColoredSetting().is_colorize(self.__stream), **_levelstyles.get(record.levelname, {})))
 
 class ColoredLogger(logging.Logger):
     def __init__(self, name, level = logging.NOTSET, stream = sys.stderr):
@@ -51,8 +51,7 @@ def main(argv = None):
     if argv is None:
         argv = sys.argv
     init_colored_logger()
-    from colored import init_colored
-    init_colored(True)
+    ColoredSetting('always')
 
     log = logging.getLogger(__name__)
     log.setLevel(logging.DEBUG)

@@ -7,7 +7,7 @@ __all__ = [
 
 import sys, argparse
 from colored import colorize
-from utils import streamistty
+from colored import ColoredSetting
 
 class ColoredArgParser(argparse.ArgumentParser):
     __styles = { 'usage' : { 'fgcolor' : 'yellow', 'set' : ( 'bold', ) },
@@ -23,16 +23,16 @@ class ColoredArgParser(argparse.ArgumentParser):
     def print_usage(self, file = sys.stdout):
         usage = self.format_usage()
         usage = usage[0].upper() + usage[1:]
-        self._print_message(str(colorize(usage, enabling = streamistty(file), **self.__styles['usage'])), file)
+        self._print_message(colorize(usage, enabling = ColoredSetting().is_colorize(file), **self.__styles['usage']), file)
 
     def print_help(self, file = sys.stdout):
         help = self.format_help()
         help = help[0].upper() + help[1:]
-        self._print_message(str(colorize(help, enabling = streamistty(file), **self.__styles['help'])), file)
+        self._print_message(colorize(help, enabling = ColoredSetting().is_colorize(file), **self.__styles['help']), file)
 
     def exit(self, status = 0, message = None):
         if message:
-            self._print_message(str(colorize(message, enabling = streamistty(sys.stderr), **self.__styles['error'])), sys.stderr)
+            self._print_message(colorize(message, enabling = ColoredSetting().is_colorize(sys.stderr), **self.__styles['error']), sys.stderr)
         sys.exit(status)
 
     def error(self, message):
@@ -42,11 +42,12 @@ class ColoredArgParser(argparse.ArgumentParser):
 
     def print_error(self, message):
         message = '%(prog)s: ERROR: %(message)s\n' % { 'prog': self.prog, 'message': message }
-        self._print_message(str(colorize(message, enabling = streamistty(sys.stderr), **self.__styles['error'])), sys.stderr)
+        self._print_message(colorize(message, enabling = ColoredSetting().is_colorize(sys.stderr), **self.__styles['error']), sys.stderr)
 
 def main(argv = None):
     if argv is None:
         argv = sys.argv
+    ColoredSetting('never')
     cap = ColoredArgParser()
     cap.add_argument('-s', dest = 'simple_value', help = 'Simple value')
     cap.add_argument('-l', '--longoption', dest = 'longoption_value', help = 'Longoption value')

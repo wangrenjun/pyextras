@@ -3,8 +3,8 @@
 
 __all__ = [
     'reversed_dict',
+    'Singleton',
     'ConstDotDictify',
-    'floatify',
     'align_size',
     'roundup',
     'get_terminal_size',
@@ -26,12 +26,20 @@ __all__ = [
     'substr_match',
     'has_fuzzy_matched',
     'has_substr_matched',
+    'namedtupledictify',
 ]
 
 import math, os, sys, itertools, urllib, difflib
 
 # Swap keys for values
 reversed_dict = lambda d: dict(zip(d.values(), d.keys()))
+
+class Singleton(type):
+    __instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls.__instances:
+            cls.__instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls.__instances[cls]
 
 class ConstDotDictify():
     def __init__(self, *args, **kwargs):
@@ -44,12 +52,6 @@ class ConstDotDictify():
     __setattr__ = __readonly__
     __setitem__ = __readonly__
     del __readonly__
-
-def floatify(s):
-    try:
-        return float(s)
-    except ValueError:
-        return s
 
 # Only to be used to align on a power of 2 boundary.
 align_size = lambda size, boundary: size + (boundary - 1) & ~(boundary - 1) if math.log(boundary, 2).is_integer() else None
@@ -116,9 +118,9 @@ inversed_textwrap = lambda text, wrapwidth: list(map(lambda x:x[::-1], textwrap.
 # Check filestream is attached to terminal.
 streamistty = lambda file: True if file.isatty() else False
 
-DEFAULT_THRESHOLD = 0.7
+_DEFAULT_THRESHOLD = 0.7
 
-def fuzzy_match(needle, haystack, ignore_case = False, threshold = DEFAULT_THRESHOLD):
+def fuzzy_match(needle, haystack, ignore_case = False, threshold = _DEFAULT_THRESHOLD):
     if ignore_case:
         matching = lambda entry: difflib.SequenceMatcher(a = needle.lower(), b = entry.lower()).ratio() >= threshold
     else:
@@ -132,7 +134,7 @@ def substr_match(needle, haystack, ignore_case = False):
         matching = lambda entry: needle in entry
     return filter(match, haystack)
 
-def has_fuzzy_matched(needle, haystack, ignore_case = False, threshold = DEFAULT_THRESHOLD):
+def has_fuzzy_matched(needle, haystack, ignore_case = False, threshold = _DEFAULT_THRESHOLD):
     if ignore_case:
         matching = lambda entry: difflib.SequenceMatcher(a = needle.lower(), b = entry.lower()).ratio() >= threshold
     else:
@@ -151,3 +153,5 @@ def has_substr_matched(needle, haystack, ignore_case = False):
         if matching(entry):
             return True
     return False
+
+namedtupledictify = lambda nt: dict(nt._asdict())
